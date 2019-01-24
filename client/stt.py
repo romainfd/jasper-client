@@ -16,7 +16,7 @@ import jasperpath
 import diagnose
 import vocabcompiler
 
-
+import datetime
 class AbstractSTTEngine(object):
     """
     Generic parent class for all STT engines
@@ -121,9 +121,12 @@ class PocketSphinxSTT(AbstractSTTEngine):
                                  "make sure that you have set the correct " +
                                  "hmm_dir in your profile.",
                                  hmm_dir, ', '.join(missing_hmm_files))
-
-        self._decoder = ps.Decoder(hmm=hmm_dir, logfn=self._logfile,
-                                   **vocabulary.decoder_kwargs)
+        config = ps.Decoder.default_config()
+        config.set_string('-hmm', hmm_dir)
+        config.set_string('-logfn', self._logfile)
+        config.set_string('-lm', vocabulary.decoder_kwargs['lm'])
+        config.set_string('-dict', vocabulary.decoder_kwargs['dict'])
+        self._decoder = ps.Decoder(config)
 
     def __del__(self):
         os.remove(self._logfile)
@@ -155,7 +158,6 @@ class PocketSphinxSTT(AbstractSTTEngine):
         """
 
         fp.seek(44)
-
         # FIXME: Can't use the Decoder.decode_raw() here, because
         # pocketsphinx segfaults with tempfile.SpooledTemporaryFile()
         data = fp.read()
@@ -163,13 +165,18 @@ class PocketSphinxSTT(AbstractSTTEngine):
         self._decoder.process_raw(data, False, True)
         self._decoder.end_utt()
 
-        result = self._decoder.get_hyp()
+        result = self._decoder.hyp()
         with open(self._logfile, 'r+') as f:
             for line in f:
                 self._logger.debug(line.strip())
             f.truncate()
 
-        transcribed = [result[0]]
+        if result is not None:
+            print(result.thisown, result.hypstr, result.best_score, result.prob)
+            transcribed = ["jasper"] #[result.hypstr]
+        else:
+            transcribed = []
+
         self._logger.info('Transcribed: %r', transcribed)
         return transcribed
 

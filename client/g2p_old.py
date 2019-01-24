@@ -21,7 +21,11 @@ class PhonetisaurusG2P(object):
 
         cmd = ['phonetisaurus-g2p',
                '--model=%s' % fst_model,
-               '--testset=%s' % input]
+               '--input=%s' % input,
+               '--words']
+
+        if is_file:
+            cmd.append('--isfile')
 
         if nbest is not None:
             cmd.extend(['--nbest=%d' % nbest])

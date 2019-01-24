@@ -9,7 +9,7 @@ import audioop
 import pyaudio
 import alteration
 import jasperpath
-
+import datetime
 
 class Mic:
 
